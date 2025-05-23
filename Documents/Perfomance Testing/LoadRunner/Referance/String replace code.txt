@@ -1,0 +1,36 @@
+initialize:
+
+char aSeparator[2];
+	char aSeparator1[2];
+	char pstr1[100];
+	int a,b;
+	char pstr2[100]={0};
+
+
+
+	strcpy(pstr1,lr_eval_string("{C_StateToken1}"));
+	strcpy(aSeparator,"\\");
+	strcpy(aSeparator1,"-");
+	
+	lr_output_message("%s",pstr1);
+//	lr_log_message("%s",lr_save_string("pstr2","App");
+	pstr2[0]='\0';
+
+	for(a=0,b=0;pstr1[a]!=NULL;a++,b++)
+	{
+    if(pstr1[a]==aSeparator[0])
+    {
+    	pstr2[b]=aSeparator1[0];
+        pstr2[b+1]=pstr1[a+4];
+        a=a+5;
+        b=b+2;
+        
+      //  lr_log_message("%s",pstr2);
+    }
+    pstr2[b]=pstr1[a];
+    
+    lr_log_message("%s",pstr2);
+    
+	}
+
+	lr_save_string(lr_eval_string(pstr2), "StateToken");
