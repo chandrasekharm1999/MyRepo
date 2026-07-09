@@ -1,0 +1,688 @@
+### USER
+how to get the sampler request details in Jmeter
+
+### ASSISTANT
+# How to Get Sampler Request Details in JMeter
+
+There are several ways to view and get sampler request details in JMeter:
+
+---
+
+## 1. View Results Tree Listener
+
+The most common and detailed way to see request details.
+
+**Steps:**
+1. Right-click on your **Thread Group** (or Test Plan)
+2. Go to **Add → Listener → View Results Tree**
+3. Run your test
+4. Click on any sampler in the left panel
+5. Select the **"Request"** tab to see full request details
+
+**What you'll see:**
+- Request URL
+- Request Method (GET, POST, etc.)
+- Request Headers
+- Request Body/Parameters
+- Cookies sent
+
+---
+
+## 2. View Results in Table Listener
+
+**Steps:**
+1. Right-click → **Add → Listener → View Results in Table**
+2. Shows summarized details like sample time, status, bytes, latency, etc.
+
+---
+
+## 3. Using Debug Sampler
+
+**Steps:**
+1. Right-click on Thread Group → **Add → Sampler → Debug Sampler**
+2. Add a **View Results Tree** listener
+3. Run the test
+4. Check the Debug Sampler response to see all JMeter variables and properties
+
+---
+
+## 4. Using Request Headers via HTTP Header Manager
+
+To see headers being sent:
+1. Add **View Results Tree**
+2. Click on the sampler → **Request** tab → Check "Request Headers"
+
+---
+
+## 5. Using `SampleResult` in Code (BeanShell/JSR223)
+
+You can programmatically access request details:
+
+```groovy
+// In JSR223 PostProcessor or Sampler
+import org.apache.jmeter.samplers.SampleResult;
+
+// Get request details from previous sampler
+String requestHeaders = prev.getRequestHeaders();
+String requestURL = prev.getUrlAsString();
+String requestBody = prev.getSamplerData();
+String responseCode = prev.getResponseCode();
+String responseBody = prev.getResponseDataAsString();
+
+log.info("Request URL: " + requestURL);
+log.info("Request Headers: " + requestHeaders);
+log.info("Request Body: " + requestBody);
+```
+
+---
+
+## 6. Using `ctx` (JMeterContext) in Scripts
+
+```groovy
+// In JSR223 PostProcessor
+import org.apache.jmeter.protocol.http.sampler.HTTPSampleResult;
+
+def result = ctx.getPreviousResult();
+log.info("URL: " + result.getUrlAsString());
+log.info("Request Headers: " + result.getRequestHeaders());
+log.info("Sampler Data: " + result.getSamplerData());
+log.info("Response Code: " + result.getResponseCode());
+log.info("Response Message: " + result.getResponseMessage());
+```
+
+---
+
+## 7. Save Request/Response to File
+
+**Using "Save Responses to a file" Listener:**
+1. Right-click → **Add → Listener → Save Responses to a file**
+2. Configure the filename prefix
+
+**Or in View Results Tree:**
+1. Click the **"Save"** button at the bottom to export results
+
+---
+
+## 8. Non-GUI Mode (Command Line)
+
+When running in non-GUI mode, save results to a JTL file:
+
+```bash
+jmeter -n -t test.jmx -l results.jtl -e -o report_folder
+```
+
+To include request/response data in the JTL file, add these properties to `jmeter.properties` or `user.properties`:
+
+```properties
+jmeter.save.saveservice.output_format=xml
+jmeter.save.saveservice.response_data=true
+jmeter.save.saveservice.samplerData=true
+jmeter.save.saveservice.requestHeaders=true
+jmeter.save.saveservice.url=true
+jmeter.save.saveservice.method=true
+```
+
+---
+
+## 9. Using Fiddler/Charles Proxy
+
+For external inspection:
+1. Set up a proxy (Fiddler, Charles, or Wireshark)
+2. Configure JMeter to route through the proxy:
+   - Go to **HTTP Request Defaults** or individual HTTP Request
+   - Set Proxy Host: `localhost`
+   - Set Proxy Port: `8888` (or your proxy port)
+3. View all request/response details in the proxy tool
+
+---
+
+## Summary Table
+
+| Method | Best For |
+|--------|----------|
+| View Results Tree | Debugging individual requests |
+| Debug Sampler | Viewing variables and properties |
+| JSR223/BeanShell | Programmatic access to request data |
+| JTL with XML format | Saving full details for later analysis |
+| External Proxy | Deep network-level inspection |
+
+---
+
+## Pro Tips
+
+- ⚠️ **Remove listeners before load testing** – they consume memory
+- Use **`-l results.jtl`** in non-GUI mode for production tests
+- Enable **"Log/Display Only Errors"** in listeners during heavy load tests
+- Use **Simple Data Writer** for lightweight logging during load tests
+
+### USER
+what are all the other methods that are available in jmeter like prev,ctx like what are the in build funtions we have
+
+### ASSISTANT
+# JMeter Built-in Variables, Objects & Functions
+
+JMeter provides several built-in objects, variables, and functions that can be used in **JSR223/BeanShell scripts**, **Pre/Post Processors**, and **Assertions**.
+
+---
+
+## 1. Built-in Objects (Available in JSR223/BeanShell Scripts)
+
+### Overview Table
+
+| Object | Type | Description |
+|--------|------|-------------|
+| `prev` | `SampleResult` | Result of the previous sampler |
+| `ctx` | `JMeterContext` | Current thread's context |
+| `vars` | `JMeterVariables` | Thread-local variables |
+| `props` | `Properties` | Global properties (shared across threads) |
+| `log` | `Logger` | Logger for writing to JMeter log |
+| `sampler` | `Sampler` | Current sampler object |
+| `SampleResult` | `SampleResult` | Current sample result (in some contexts) |
+| `Label` | `String` | Sampler label/name |
+| `FileName` | `String` | Script filename (if external) |
+| `Parameters` | `String` | Parameters passed to the script |
+| `args` | `String[]` | Arguments array |
+| `OUT` | `PrintStream` | System output stream |
+
+---
+
+## 2. `prev` (SampleResult) — Previous Sample Result
+
+```groovy
+// Available methods on prev (org.apache.jmeter.samplers.SampleResult)
+
+prev.getResponseCode()            // "200", "404", etc.
+prev.getResponseMessage()         // "OK", "Not Found", etc.
+prev.getResponseDataAsString()    // Response body as string
+prev.getResponseData()            // Response body as byte[]
+prev.getResponseHeaders()         // Response headers
+prev.getRequestHeaders()          // Request headers
+prev.getContentType()             // Content-Type header value
+prev.getSamplerData()             // Request body/data sent
+prev.getUrlAsString()             // Full request URL
+prev.getURL()                     // URL object
+
+prev.getTime()                    // Response time in ms
+prev.getLatency()                 // Latency in ms
+prev.getConnectTime()             // Connection time in ms
+prev.getIdleTime()                // Idle time in ms
+prev.getStartTime()               // Start time (epoch)
+prev.getEndTime()                 // End time (epoch)
+
+prev.getBytesAsLong()             // Response bytes
+prev.getSentBytes()               // Sent bytes
+prev.getHeadersSize()             // Headers size in bytes
+prev.getBodySize()                // Body size (alias: getBodySizeAsLong())
+
+prev.getSampleLabel()             // Sampler name/label
+prev.getThreadName()              // Thread name
+prev.getDataType()                // "text" or "bin"
+prev.getMediaType()               // Media type
+
+prev.isSuccessful()               // true/false (pass/fail)
+prev.setSuccessful(boolean)       // Set pass/fail status
+prev.setResponseCode(String)      // Override response code
+prev.setResponseMessage(String)   // Override response message
+prev.setResponseData(String, String) // Set response data (data, encoding)
+
+prev.getSubResults()              // Sub-results array (redirects, etc.)
+prev.getParent()                  // Parent SampleResult
+prev.getSampleCount()             // Number of samples
+prev.getErrorCount()              // Number of errors
+
+prev.getAssertionResults()        // Array of AssertionResult objects
+prev.setStopThread(boolean)       // Stop current thread
+prev.setStopTest(boolean)         // Stop entire test
+prev.setStopTestNow(boolean)      // Stop test immediately
+
+prev.setDataType(String)          // Set data type
+prev.getGroupThreads()            // Active threads in group
+prev.getAllThreads()              // All active threads
+
+prev.isResponseCodeOK()           // Check if response code is 2xx
+prev.setResponseOK()              // Set response as OK
+```
+
+---
+
+## 3. `ctx` (JMeterContext) — Thread Context
+
+```groovy
+// Available methods on ctx (org.apache.jmeter.threads.JMeterContext)
+
+ctx.getPreviousResult()           // Same as prev (SampleResult)
+ctx.getCurrentSampler()           // Current sampler object
+ctx.getPreviousSampler()          // Previous sampler object
+ctx.getVariables()                // Same as vars (JMeterVariables)
+ctx.getProperties()               // Same as props
+
+ctx.getThread()                   // Current JMeterThread
+ctx.getThreadGroup()              // Current ThreadGroup
+ctx.getThreadNum()                // Current thread number (0-based)
+
+ctx.getEngine()                   // StandardJMeterEngine
+ctx.isSamplingStarted()           // Has sampling started?
+ctx.isRecording()                 // Is recording?
+ctx.isRestartNextLoop()           // Restart next loop?
+ctx.setRestartNextLoop(boolean)   // Set restart next loop
+
+// Thread control
+ctx.getThread().stop()            // Stop current thread
+ctx.getThread().interrupt()       // Interrupt current thread
+```
+
+---
+
+## 4. `vars` (JMeterVariables) — Thread-Local Variables
+
+```groovy
+// Available methods on vars (org.apache.jmeter.threads.JMeterVariables)
+
+vars.get("variableName")          // Get variable value as String
+vars.put("variableName", "value") // Set variable value (String only)
+vars.putObject("name", object)    // Store any Java object
+vars.getObject("name")            // Retrieve stored object
+
+vars.remove("variableName")       // Remove a variable
+vars.getIteration()               // Current loop iteration number
+
+// Working with arrays (from ForEach, RegEx, etc.)
+vars.get("match_1")               // First regex match
+vars.get("match_2")               // Second regex match
+vars.get("match_matchNr")         // Number of matches
+```
+
+---
+
+## 5. `props` (Properties) — Global/Shared Properties
+
+```groovy
+// Available methods on props (java.util.Properties)
+
+props.get("propertyName")                    // Get property value
+props.getProperty("propertyName")            // Get property as String
+props.getProperty("name", "defaultValue")    // Get with default
+props.put("propertyName", "value")           // Set property
+props.setProperty("propertyName", "value")   // Set property (String)
+props.remove("propertyName")                 // Remove property
+props.containsKey("propertyName")            // Check if exists
+props.keys()                                 // Enumeration of all keys
+props.size()                                 // Number of properties
+props.entrySet()                             // Set of all entries
+```
+
+**Difference between `vars` and `props`:**
+| Feature | `vars` | `props` |
+|---------|--------|---------|
+| Scope | Thread-local | Global (all threads) |
+| Thread-safe | Per thread | Shared across threads |
+| Use case | Store per-user data | Share data between thread groups |
+
+---
+
+## 6. `log` (Logger) — Logging
+
+```groovy
+// Available methods on log (org.slf4j.Logger)
+
+log.info("Information message")
+log.info("Value is: {}", someVariable)       // Parameterized logging
+log.warn("Warning message")
+log.error("Error message")
+log.debug("Debug message")
+log.trace("Trace message")
+
+log.error("Exception occurred", exception)   // Log with exception
+
+log.isInfoEnabled()
+log.isDebugEnabled()
+log.isWarnEnabled()
+log.isErrorEnabled()
+log.isTraceEnabled()
+```
+
+---
+
+## 7. `sampler` — Current Sampler Object
+
+```groovy
+// For HTTP Request (org.apache.jmeter.protocol.http.sampler.HTTPSamplerProxy)
+
+sampler.getName()                    // Sampler name
+sampler.setName("New Name")          // Set sampler name
+sampler.getUrl()                     // Get URL
+sampler.getDomain()                  // Get domain
+sampler.setDomain("example.com")     // Set domain
+sampler.getPort()                    // Get port
+sampler.setPort(8080)                // Set port
+sampler.getPath()                    // Get path
+sampler.setPath("/api/endpoint")     // Set path
+sampler.getMethod()                  // GET, POST, etc.
+sampler.setMethod("POST")            // Set method
+sampler.getProtocol()                // http or https
+sampler.setProtocol("https")         // Set protocol
+
+// Query parameters
+sampler.getArguments()               // Get all arguments
+sampler.addArgument("name", "value") // Add parameter
+sampler.addNonEncodedArgument("name", "value", "") // Add without encoding
+
+// Headers (if Header Manager is attached)
+sampler.getHeaderManager()           // Get Header Manager
+
+// Post body
+sampler.addNonEncodedArgument("", "body_content", "")
+sampler.setPostBodyRaw(true)         // Set raw body mode
+
+// Properties
+sampler.getPropertyAsString("propName")
+sampler.setProperty("propName", "value")
+
+// Connection settings
+sampler.getConnectTimeout()
+sampler.setConnectTimeout("5000")
+sampler.getResponseTimeout()
+sampler.setResponseTimeout("10000")
+
+sampler.getAutoRedirects()
+sampler.setAutoRedirects(true)
+sampler.getFollowRedirects()
+sampler.setFollowRedirects(true)
+sampler.getUseKeepAlive()
+sampler.setUseKeepAlive(true)
+```
+
+---
+
+## 8. `SampleResult` (in JSR223 Sampler)
+
+When used inside a **JSR223 Sampler**, you get direct access to `SampleResult`:
+
+```groovy
+SampleResult.setResponseCode("200")
+SampleResult.setResponseMessage("OK")
+SampleResult.setResponseData("Response body here", "UTF-8")
+SampleResult.setDataType(org.apache.jmeter.samplers.SampleResult.TEXT)
+SampleResult.setSuccessful(true)
+SampleResult.setSampleLabel("Custom Label")
+SampleResult.setResponseHeaders("Content-Type: application/json")
+SampleResult.setContentType("application/json")
+SampleResult.setBytes(responseBody.length())
+SampleResult.setLatency(100)
+SampleResult.setConnectTime(50)
+```
+
+---
+
+## 9. Built-in Functions (Used in JMeter Fields — `${}` Syntax)
+
+### String Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__groovy()}` | Execute Groovy script | `${__groovy(vars.get("name").toUpperCase())}` |
+| `${__javaScript()}` | Execute JavaScript | `${__javaScript("hello".toUpperCase())}` |
+| `${__BeanShell()}` | Execute BeanShell | `${__BeanShell(vars.get("x"))}` |
+| `${__split()}` | Split string into variables | `${__split(a;b;c,var,;)}` |
+| `${__changeCase()}` | Change case | `${__changeCase(hello,UPPER,result)}` |
+| `${__char()}` | Character from Unicode | `${__char(65)}` → A |
+| `${__unescape()}` | Process escape sequences | `${__unescape(\t\n)}` |
+| `${__escapeHtml()}` | HTML escape | `${__escapeHtml(<b>test</b>)}` |
+| `${__unescapeHtml()}` | HTML unescape | `${__unescapeHtml(&lt;b&gt;)}` |
+| `${__urlencode()}` | URL encode | `${__urlencode(hello world)}` |
+| `${__urldecode()}` | URL decode | `${__urldecode(hello%20world)}` |
+| `${__escapeOroRegexpChars()}` | Escape regex chars | `${__escapeOroRegexpChars([test])}` |
+
+### Counter & Number Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__counter()}` | Auto-increment counter | `${__counter(TRUE,myCounter)}` |
+| `${__intSum()}` | Sum integers | `${__intSum(1,2,3,result)}` |
+| `${__longSum()}` | Sum long values | `${__longSum(1000,2000,result)}` |
+| `${__Random()}` | Random number | `${__Random(1,100,randVar)}` |
+| `${__RandomString()}` | Random string | `${__RandomString(10,abcdef,result)}` |
+| `${__RandomDate()}` | Random date | `${__RandomDate(yyyy-MM-dd,2020-01-01,2024-12-31,,)}` |
+| `${__UUID()}` | Generate UUID | `${__UUID()}` |
+
+### Date & Time Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__time()}` | Current time | `${__time(yyyy-MM-dd HH:mm:ss)}` |
+| `${__timeShift()}` | Shifted time | `${__timeShift(yyyy-MM-dd,,P1D,,)}` |
+| `${__dateTimeConvert()}` | Convert date format | `${__dateTimeConvert(01/01/2024,dd/MM/yyyy,yyyy-MM-dd,)}` |
+
+### Variable & Property Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__V()}` | Evaluate variable name | `${__V(user_${counter})}` |
+| `${__eval()}` | Evaluate expression | `${__eval(${stored_expression})}` |
+| `${__evalVar()}` | Evaluate variable content | `${__evalVar(myVar)}` |
+| `${__P()}` | Get property | `${__P(my.property,default)}` |
+| `${__property()}` | Get property (full) | `${__property(prop.name,,varName)}` |
+| `${__setProperty()}` | Set property | `${__setProperty(name,value,)}` |
+| `${__threadNum}` | Current thread number | `${__threadNum}` |
+| `${__threadGroupName}` | Thread group name | `${__threadGroupName}` |
+| `${__iterationNum}` | Current iteration | `${__iterationNum}` |
+| `${__samplerName()}` | Current sampler name | `${__samplerName()}` |
+| `${__TestPlanName}` | Test plan filename | `${__TestPlanName}` |
+
+### File Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__FileToString()}` | Read file to string | `${__FileToString(/path/file.txt,UTF-8,var)}` |
+| `${__StringToFile()}` | Write string to file | `${__StringToFile(/path/out.txt,content,true)}` |
+| `${__CSVRead()}` | Read CSV value | `${__CSVRead(file.csv,0)}` |
+| `${__XPath()}` | Read from XML file | `${__XPath(/path/file.xml,//node)}` |
+| `${__StringFromFile()}` | Read line from file | `${__StringFromFile(/path/file.txt,,,)}` |
+
+### Logic & Flow Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__if()}` | Conditional (deprecated) | `${__if(condition,then,else)}` |
+| `${__ifDefined()}` | If variable defined | `${__ifDefined(varName,value)}` |
+| `${__isPropDefined()}` | Is property defined | `${__isPropDefined(prop.name)}` |
+| `${__isVarDefined()}` | Is variable defined | `${__isVarDefined(varName)}` |
+| `${__log()}` | Log a value | `${__log(message,INFO,logger,)}` |
+| `${__logn()}` | Log and return value | `${__logn(value,INFO,logger,)}` |
+
+### Encoding Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__base64Encode()}` | Base64 encode | `${__base64Encode(hello,result)}` |
+| `${__base64Decode()}` | Base64 decode | `${__base64Decode(aGVsbG8=,result)}` |
+| `${__digest()}` | Hash digest | `${__digest(SHA-256,text,,result)}` |
+| `${__MD5()}` | MD5 hash | `${__MD5(text,result)}` |
+
+### Scripting Functions
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `${__groovy()}` | Groovy expression | `${__groovy(new Date().format('yyyyMMdd'))}` |
+| `${__javaScript()}` | JavaScript expression | `${__javaScript(Math.random())}` |
+| `${__BeanShell()}` | BeanShell expression | `${__BeanShell(import java.util.*;)}` |
+| `${__jexl3()}` | JEXL3 expression | `${__jexl3(1+2)}` |
+
+---
+
+## 10. Accessing HTTP-Specific Objects
+
+### Cookie Manager
+
+```groovy
+import org.apache.jmeter.protocol.http.control.CookieManager;
+import org.apache.jmeter.protocol.http.control.Cookie;
+
+CookieManager manager = sampler.getCookieManager();
+int cookieCount = manager.getCookieCount();
+
+for (int i = 0; i < cookieCount; i++) {
+    Cookie cookie = manager.get(i);
+    log.info("Cookie: " + cookie.getName() + " = " + cookie.getValue());
+    log.info("Domain: " + cookie.getDomain());
+    log.info("Path: " + cookie.getPath());
+    log.info("Expires: " + cookie.getExpires());
+}
+```
+
+### Header Manager
+
+```groovy
+import org.apache.jmeter.protocol.http.control.HeaderManager;
+import org.apache.jmeter.protocol.http.control.Header;
+
+HeaderManager headerManager = sampler.getHeaderManager();
+for (int i = 0; i < headerManager.size(); i++) {
+    Header header = headerManager.get(i);
+    log.info("Header: " + header.getName() + " = " + header.getValue());
+}
+
+// Add a header dynamically
+headerManager.add(new Header("Authorization", "Bearer token123"));
+```
+
+### Authorization Manager
+
+```groovy
+import org.apache.jmeter.protocol.http.control.AuthManager;
+
+AuthManager authManager = sampler.getAuthManager();
+```
+
+---
+
+## 11. Thread Group Control
+
+```groovy
+// Stop current thread
+ctx.getThread().stop();
+
+// Stop entire test gracefully
+ctx.getEngine().stopTest();
+
+// Stop test immediately
+ctx.getEngine().stopTest(true);
+
+// Restart next loop iteration
+ctx.setRestartNextLoop(true);
+```
+
+---
+
+## 12. Working with JSON in Scripts
+
+```groovy
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+
+// Parse JSON response
+def response = prev.getResponseDataAsString()
+def json = new JsonSlurper().parseText(response)
+
+// Access values
+def userId = json.data.id
+def userName = json.data.name
+def items = json.data.items
+
+// Store in variables
+vars.put("userId", userId.toString())
+vars.put("itemCount", items.size().toString())
+
+// Create JSON
+def newJson = JsonOutput.toJson([name: "test", value: 123])
+log.info("JSON: " + newJson)
+```
+
+---
+
+## 13. Working with XML in Scripts
+
+```groovy
+def response = prev.getResponseDataAsString()
+def xml = new XmlSlurper().parseText(response)
+
+def value = xml.body.element.text()
+vars.put("extractedValue", value)
+```
+
+---
+
+## 14. Useful Utility Methods
+
+```groovy
+import org.apache.jmeter.util.JMeterUtils;
+
+// Get JMeter home
+String jmeterHome = JMeterUtils.getJMeterHome();
+
+// Get JMeter properties
+String propValue = JMeterUtils.getProperty("propertyName");
+JMeterUtils.setProperty("propertyName", "value");
+
+// Get locale
+Locale locale = JMeterUtils.getLocale();
+
+// Get JMeter version
+String version = JMeterUtils.getJMeterVersion();
+```
+
+---
+
+## 15. Pre-Processor vs Post-Processor Available Objects
+
+| Object | Pre-Processor | Post-Processor | JSR223 Sampler | Assertion |
+|--------|:---:|:---:|:---:|:---:|
+| `prev` | ❌ (previous sampler) | ✅ | ❌ | ✅ |
+| `ctx` | ✅ | ✅ | ✅ | ✅ |
+| `vars` | ✅ | ✅ | ✅ | ✅ |
+| `props` | ✅ | ✅ | ✅ | ✅ |
+| `log` | ✅ | ✅ | ✅ | ✅ |
+| `sampler` | ✅ (current) | ✅ (current) | ✅ | ✅ |
+| `SampleResult` | ❌ | ✅ | ✅ | ✅ |
+| `AssertionResult` | ❌ | ❌ | ❌ | ✅ |
+
+---
+
+## 16. Quick Reference Cheat Sheet
+
+```groovy
+// ======== MOST COMMONLY USED ========
+
+// Get/Set variables
+vars.get("myVar")
+vars.put("myVar", "value")
+
+// Get response data
+prev.getResponseDataAsString()
+prev.getResponseCode()
+prev.isSuccessful()
+
+// Log information
+log.info("Message: " + vars.get("myVar"))
+
+// Get current thread info
+ctx.getThreadNum()
+vars.getIteration()
+
+// Global properties
+props.get("globalVar")
+props.put("globalVar", "sharedValue")
+
+// Modify current request
+sampler.addArgument("param", "value")
+sampler.setPath("/new/path")
+
+// Stop on failure
+if (!prev.isSuccessful()) {
+    prev.setStopThread(true)
+}
+```
+
+---
+
+This covers virtually all built-in objects, methods, and functions available in JMeter for scripting and test configuration!
